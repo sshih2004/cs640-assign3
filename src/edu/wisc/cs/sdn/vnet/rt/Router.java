@@ -297,7 +297,6 @@ public class Router extends Device {
 			ip.setPayload(udp);
 			ethernet.setPayload(ip);
 			ethernet.serialize();
-			System.out.print(routeTable.toString());
 			this.sendPacket(ethernet, iface);
 		}
 
@@ -346,28 +345,30 @@ public class Router extends Device {
 
 		// Periodic debug dump of RIP entries (every 30 seconds)
 		Runnable debugDump = () -> {
-			try {
-				long now = System.currentTimeMillis();
-				System.out.println("[RIP][debug] total entries=" + ripMap.size());
-				// Snapshot to avoid concurrent modification while iterating
-				java.util.List<RipEntry> snapshot = new java.util.ArrayList<>(ripMap.values());
-				for (RipEntry re : snapshot) {
-					String addrStr = IPv4.fromIPv4Address(re.addr);
-					String maskStr = IPv4.fromIPv4Address(re.mask);
-					String nhStr = IPv4.fromIPv4Address(re.nextHop);
-					long ageSec = (re.lastUpdated < 0) ? -1 : ((now - re.lastUpdated) / 1000L);
-					System.out.println(String.format(
-						"[RIP][entry] %s mask %s metric %d nextHop %s age=%ds",
-						addrStr, maskStr, re.metric, nhStr, ageSec));
-				}
-			} catch (Exception e) {
-				System.err.println("[RIP][debug] dump error: " + e.getMessage());
-			}
+			// try {
+			// 	long now = System.currentTimeMillis();
+			// 	System.out.println("[RIP][debug] total entries=" + ripMap.size());
+			// 	// Snapshot to avoid concurrent modification while iterating
+			// 	java.util.List<RipEntry> snapshot = new java.util.ArrayList<>(ripMap.values());
+			// 	for (RipEntry re : snapshot) {
+			// 		String addrStr = IPv4.fromIPv4Address(re.addr);
+			// 		String maskStr = IPv4.fromIPv4Address(re.mask);
+			// 		String nhStr = IPv4.fromIPv4Address(re.nextHop);
+			// 		long ageSec = (re.lastUpdated < 0) ? -1 : ((now - re.lastUpdated) / 1000L);
+			// 		System.out.println(String.format(
+			// 			"[RIP][entry] %s mask %s metric %d nextHop %s age=%ds",
+			// 			addrStr, maskStr, re.metric, nhStr, ageSec));
+			// 	}
+			// } catch (Exception e) {
+			// 	System.err.println("[RIP][debug] dump error: " + e.getMessage());
+			// }
+
+			System.out.print(routeTable.toString());
 		};
 
 		scheduler.scheduleAtFixedRate(unsol, 0, 10, TimeUnit.SECONDS);
 		scheduler.scheduleAtFixedRate(timeOut, 0, 1, TimeUnit.SECONDS);
-		// scheduler.scheduleAtFixedRate(debugDump, 0, 10, TimeUnit.SECONDS);
+		scheduler.scheduleAtFixedRate(debugDump, 0, 10, TimeUnit.SECONDS);
 
 	}
 }
