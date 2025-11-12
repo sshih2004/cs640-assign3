@@ -201,6 +201,7 @@ public class Router extends Device {
 					}
 				}
 			}
+			return;
 		}
 
 		// Check TTL
