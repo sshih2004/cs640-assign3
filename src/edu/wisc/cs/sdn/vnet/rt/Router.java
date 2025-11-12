@@ -142,12 +142,6 @@ public class Router extends Device {
 			return;
 		}
 
-		// Check TTL
-		ipPacket.setTtl((byte) (ipPacket.getTtl() - 1));
-		if (0 == ipPacket.getTtl()) {
-			return;
-		}
-
 		if (ipPacket.getProtocol() == IPv4.PROTOCOL_UDP
 				&& ((UDP) ipPacket.getPayload()).getDestinationPort() == UDP.RIP_PORT) {
 			// handle RIP
@@ -210,7 +204,11 @@ public class Router extends Device {
 			return;
 		}
 
-
+		// Check TTL
+		ipPacket.setTtl((byte) (ipPacket.getTtl() - 1));
+		if (0 == ipPacket.getTtl()) {
+			return;
+		}
 		
 		// Reset checksum now that TTL is decremented
 		ipPacket.resetChecksum();
@@ -274,7 +272,7 @@ public class Router extends Device {
 		for (Iface iface : this.interfaces.values()) {
 			this.routeTable.insert(iface.getIpAddress() & iface.getSubnetMask(), 0, iface.getSubnetMask(), iface);
 			ripMap.put(iface.getIpAddress() & iface.getSubnetMask(),
-					new RipEntry(iface.getIpAddress() & iface.getSubnetMask(), iface.getSubnetMask(), 0, 0,
+					new RipEntry(iface.getIpAddress() & iface.getSubnetMask(), iface.getSubnetMask(), 1, 0,
 							-1));
 		}
 		for (Iface iface : this.interfaces.values()) {
@@ -368,7 +366,7 @@ public class Router extends Device {
 
 		scheduler.scheduleAtFixedRate(unsol, 0, 10, TimeUnit.SECONDS);
 		scheduler.scheduleAtFixedRate(timeOut, 0, 1, TimeUnit.SECONDS);
-		scheduler.scheduleAtFixedRate(debugDump, 0, 30, TimeUnit.SECONDS);
+		scheduler.scheduleAtFixedRate(debugDump, 0, 10, TimeUnit.SECONDS);
 
 	}
 }
