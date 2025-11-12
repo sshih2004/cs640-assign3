@@ -145,6 +145,12 @@ public class Router extends Device {
 		if (ipPacket.getProtocol() == IPv4.PROTOCOL_UDP
 				&& ((UDP) ipPacket.getPayload()).getDestinationPort() == UDP.RIP_PORT) {
 			// handle RIP
+			// Check if packet is destined for one of router's own interfaces
+			for (Iface iface : this.interfaces.values()) {
+				if (ipPacket.getDestinationAddress() == iface.getIpAddress()) {
+					return;
+				}
+			}
 			UDP udp = (UDP) ipPacket.getPayload();
 			RIPv2 rip = (RIPv2) udp.getPayload();
 			if (rip.getCommand() == RIPv2.COMMAND_REQUEST) {
@@ -195,7 +201,8 @@ public class Router extends Device {
 							ripMap.put(entry.getAddress() & entry.getSubnetMask(),
 									new RipEntry(entry.getAddress(), entry.getSubnetMask(), metric,
 											ipPacket.getSourceAddress(), System.currentTimeMillis()));
-							this.routeTable.insert(entry.getAddress() & entry.getSubnetMask(), ipPacket.getSourceAddress(), entry.getSubnetMask(), inIface);
+							this.routeTable.insert(entry.getAddress() & entry.getSubnetMask(),
+									ipPacket.getSourceAddress(), entry.getSubnetMask(), inIface);
 						}
 					}
 				}
@@ -208,7 +215,7 @@ public class Router extends Device {
 		if (0 == ipPacket.getTtl()) {
 			return;
 		}
-		
+
 		// Reset checksum now that TTL is decremented
 		ipPacket.resetChecksum();
 
@@ -290,7 +297,7 @@ public class Router extends Device {
 			ethernet.setEtherType(Ethernet.TYPE_IPv4);
 			rip.setCommand(RIPv2.COMMAND_REQUEST);
 			for (RipEntry entry : ripMap.values()) {
-					rip.addEntry(new RIPv2Entry(entry.addr, entry.mask, entry.metric));
+				rip.addEntry(new RIPv2Entry(entry.addr, entry.mask, entry.metric));
 			}
 			udp.setPayload(rip);
 			ip.setPayload(udp);
@@ -355,8 +362,8 @@ public class Router extends Device {
 					String nhStr = IPv4.fromIPv4Address(re.nextHop);
 					long ageSec = (re.lastUpdated < 0) ? -1 : ((now - re.lastUpdated) / 1000L);
 					System.out.println(String.format(
-						"[RIP][entry] %s mask %s metric %d nextHop %s age=%ds",
-						addrStr, maskStr, re.metric, nhStr, ageSec));
+							"[RIP][entry] %s mask %s metric %d nextHop %s age=%ds",
+							addrStr, maskStr, re.metric, nhStr, ageSec));
 				}
 			} catch (Exception e) {
 				System.err.println("[RIP][debug] dump error: " + e.getMessage());
