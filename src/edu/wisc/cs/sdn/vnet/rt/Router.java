@@ -297,6 +297,7 @@ public class Router extends Device {
 			ip.setPayload(udp);
 			ethernet.setPayload(ip);
 			ethernet.serialize();
+			System.out.print(routeTable.toString());
 			this.sendPacket(ethernet, iface);
 		}
 
@@ -366,7 +367,7 @@ public class Router extends Device {
 
 		scheduler.scheduleAtFixedRate(unsol, 0, 10, TimeUnit.SECONDS);
 		scheduler.scheduleAtFixedRate(timeOut, 0, 1, TimeUnit.SECONDS);
-		scheduler.scheduleAtFixedRate(debugDump, 0, 10, TimeUnit.SECONDS);
+		// scheduler.scheduleAtFixedRate(debugDump, 0, 10, TimeUnit.SECONDS);
 
 	}
 }
