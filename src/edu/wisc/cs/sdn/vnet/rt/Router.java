@@ -145,9 +145,9 @@ public class Router extends Device {
 		if (ipPacket.getProtocol() == IPv4.PROTOCOL_UDP
 				&& ((UDP) ipPacket.getPayload()).getDestinationPort() == UDP.RIP_PORT) {
 			// handle RIP
-			// Check if packet is destined for one of router's own interfaces
+			// Check if packet is from one of router's own interfaces
 			for (Iface iface : this.interfaces.values()) {
-				if (ipPacket.getDestinationAddress() == iface.getIpAddress()) {
+				if (ipPacket.getSourceAddress() == iface.getIpAddress()) {
 					return;
 				}
 			}
