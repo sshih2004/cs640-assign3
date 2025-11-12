@@ -142,6 +142,12 @@ public class Router extends Device {
 			return;
 		}
 
+		// Check TTL
+		ipPacket.setTtl((byte) (ipPacket.getTtl() - 1));
+		if (0 == ipPacket.getTtl()) {
+			return;
+		}
+
 		if (ipPacket.getProtocol() == IPv4.PROTOCOL_UDP
 				&& ((UDP) ipPacket.getPayload()).getDestinationPort() == UDP.RIP_PORT) {
 			// handle RIP
@@ -204,11 +210,7 @@ public class Router extends Device {
 			return;
 		}
 
-		// Check TTL
-		ipPacket.setTtl((byte) (ipPacket.getTtl() - 1));
-		if (0 == ipPacket.getTtl()) {
-			return;
-		}
+
 		
 		// Reset checksum now that TTL is decremented
 		ipPacket.resetChecksum();
