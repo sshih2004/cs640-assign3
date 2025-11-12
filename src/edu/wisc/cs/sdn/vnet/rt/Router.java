@@ -142,6 +142,13 @@ public class Router extends Device {
 			return;
 		}
 
+		// Check TTL
+		ipPacket.setTtl((byte) (ipPacket.getTtl() - 1));
+		if (0 == ipPacket.getTtl() && ipPacket.getProtocol() != IPv4.PROTOCOL_UDP
+				&& ((UDP) ipPacket.getPayload()).getDestinationPort() != UDP.RIP_PORT) {
+			return;
+		}
+
 		if (ipPacket.getProtocol() == IPv4.PROTOCOL_UDP
 				&& ((UDP) ipPacket.getPayload()).getDestinationPort() == UDP.RIP_PORT) {
 			// handle RIP
@@ -201,12 +208,6 @@ public class Router extends Device {
 					}
 				}
 			}
-			return;
-		}
-
-		// Check TTL
-		ipPacket.setTtl((byte) (ipPacket.getTtl() - 1));
-		if (0 == ipPacket.getTtl()) {
 			return;
 		}
 		
