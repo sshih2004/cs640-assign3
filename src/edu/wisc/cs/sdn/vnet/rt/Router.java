@@ -270,8 +270,10 @@ public class Router extends Device {
 		for (Iface iface : this.interfaces.values()) {
 			this.routeTable.insert(iface.getIpAddress() & iface.getSubnetMask(), 0, iface.getSubnetMask(), iface);
 			ripMap.put(iface.getIpAddress() & iface.getSubnetMask(),
-					new RipEntry(iface.getIpAddress() & iface.getSubnetMask(), iface.getSubnetMask(), 1, 0,
-							System.currentTimeMillis()));
+					new RipEntry(iface.getIpAddress() & iface.getSubnetMask(), iface.getSubnetMask(), 0, 0,
+							-1));
+		}
+		for (Iface iface : this.interfaces.values()) {
 			Ethernet ethernet = new Ethernet();
 			IPv4 ip = new IPv4();
 			UDP udp = new UDP();
@@ -286,12 +288,14 @@ public class Router extends Device {
 			ethernet.setDestinationMACAddress(("FF:FF:FF:FF:FF:FF"));
 			ethernet.setEtherType(Ethernet.TYPE_IPv4);
 			rip.setCommand(RIPv2.COMMAND_REQUEST);
+			for (RipEntry entry : ripMap.values()) {
+					rip.addEntry(new RIPv2Entry(entry.addr, entry.mask, entry.metric));
+			}
 			udp.setPayload(rip);
 			ip.setPayload(udp);
 			ethernet.setPayload(ip);
 			ethernet.serialize();
 			this.sendPacket(ethernet, iface);
-
 		}
 
 		ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -299,7 +303,7 @@ public class Router extends Device {
 			ArrayList<Integer> toRemove = new ArrayList<>();
 
 			for (RipEntry entry : ripMap.values()) {
-				if (System.currentTimeMillis() - entry.lastUpdated >= 30000) {
+				if (entry.lastUpdated != -1 && System.currentTimeMillis() - entry.lastUpdated >= 30000) {
 					toRemove.add(entry.addr & entry.mask);
 				}
 			}
