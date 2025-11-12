@@ -195,8 +195,7 @@ public class Router extends Device {
 							ripMap.put(entry.getAddress() & entry.getSubnetMask(),
 									new RipEntry(entry.getAddress(), entry.getSubnetMask(), metric,
 											ipPacket.getSourceAddress(), System.currentTimeMillis()));
-							this.routeTable.insert(entry.getAddress() & entry.getSubnetMask(), entry.getSubnetMask(),
-									ipPacket.getSourceAddress(), inIface);
+							this.routeTable.insert(entry.getAddress() & entry.getSubnetMask(), ipPacket.getSourceAddress(), entry.getSubnetMask(), inIface);
 						}
 					}
 				}
