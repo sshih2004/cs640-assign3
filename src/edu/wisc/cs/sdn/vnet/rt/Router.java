@@ -180,26 +180,38 @@ public class Router extends Device {
 			} else if (rip.getCommand() == RIPv2.COMMAND_RESPONSE) {
 				List<RIPv2Entry> entries = rip.getEntries();
 				for (RIPv2Entry entry : entries) {
-					int metric = entry.getMetric() + 1;
-					if (ripMap.containsKey(entry.getAddress() & entry.getSubnetMask())) {
-						ripMap.get(entry.getAddress() & entry.getSubnetMask()).lastUpdated = System.currentTimeMillis();
-						if (metric < ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric) {
-							ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric = metric;
-							this.routeTable.update(entry.getAddress() & entry.getSubnetMask(), entry.getSubnetMask(),
-									ipPacket.getSourceAddress(), inIface);
+					int newMetric = entry.getMetric() + 1;
+					if (newMetric >= 16) {
+						if (ripMap.get(entry.getAddress() & entry.getSubnetMask()) != null
+								&& ripMap.get(entry.getAddress() & entry.getSubnetMask()).nextHop == ipPacket
+										.getSourceAddress()) {
+							ripMap.remove(entry.getAddress() & entry.getSubnetMask());
+							this.routeTable.remove(entry.getAddress() & entry.getSubnetMask(), entry.getSubnetMask());
 						}
-						if (metric >= 16) {
-							RouteEntry cur = this.routeTable.lookup(entry.getAddress());
-							if (inIface.equals(cur.getInterface())) {
-								ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric = 16;
-								this.routeTable.remove(entry.getAddress() & entry.getSubnetMask(),
-										entry.getSubnetMask());
+						continue;
+					}
+					if (ripMap.containsKey(entry.getAddress() & entry.getSubnetMask())) {
+						if (ripMap.get(entry.getAddress() & entry.getSubnetMask()).nextHop == ipPacket
+								.getSourceAddress()) {
+							ripMap.get(entry.getAddress() & entry.getSubnetMask()).lastUpdated = System
+									.currentTimeMillis();
+							if (newMetric != ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric) {
+								ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric = newMetric;
+								this.routeTable.update(entry.getAddress() & entry.getSubnetMask(),
+										entry.getSubnetMask(), ipPacket.getSourceAddress(), inIface);
+							}
+						} else {
+							if (newMetric < ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric) {
+								ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric = newMetric;
+								ripMap.get(entry.getAddress() & entry.getSubnetMask()).nextHop = ipPacket.getSourceAddress();
+								ripMap.get(entry.getAddress() & entry.getSubnetMask()).lastUpdated = System.currentTimeMillis();
+								this.routeTable.update(entry.getAddress() & entry.getSubnetMask(), entry.getSubnetMask(), ipPacket.getSourceAddress(), inIface);
 							}
 						}
 					} else {
-						if (metric < 16) {
+						if (newMetric < 16) {
 							ripMap.put(entry.getAddress() & entry.getSubnetMask(),
-									new RipEntry(entry.getAddress(), entry.getSubnetMask(), metric,
+									new RipEntry(entry.getAddress(), entry.getSubnetMask(), newMetric,
 											ipPacket.getSourceAddress(), System.currentTimeMillis()));
 							this.routeTable.insert(entry.getAddress() & entry.getSubnetMask(),
 									ipPacket.getSourceAddress(), entry.getSubnetMask(), inIface);
