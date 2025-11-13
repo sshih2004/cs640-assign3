@@ -26,13 +26,12 @@ public class Router extends Device {
 	private ArpCache arpCache;
 
 	class RipEntry {
-		int mask;
 		int addr;
+		int mask;
 		int metric;
 		int nextHop;
 		long lastUpdated;
 
-		// All-args constructor to initialize every field
 		RipEntry(int addr, int mask, int metric, int nextHop, long lastUpdated) {
 			this.addr = addr;
 			this.mask = mask;
@@ -144,8 +143,6 @@ public class Router extends Device {
 
 		if (ipPacket.getProtocol() == IPv4.PROTOCOL_UDP
 				&& ((UDP) ipPacket.getPayload()).getDestinationPort() == UDP.RIP_PORT) {
-			// handle RIP
-			// Check if packet is from one of router's own interfaces
 			for (Iface iface : this.interfaces.values()) {
 				if (ipPacket.getSourceAddress() == iface.getIpAddress()) {
 					return;
@@ -169,10 +166,10 @@ public class Router extends Device {
 				responseEthernet.setDestinationMACAddress(etherPacket.getSourceMACAddress());
 				responseEthernet.setEtherType(Ethernet.TYPE_IPv4);
 				responseRip.setCommand(RIPv2.COMMAND_RESPONSE);
-				responseUdp.setPayload(responseRip);
 				for (RipEntry entry : ripMap.values()) {
 					responseRip.addEntry(new RIPv2Entry(entry.addr, entry.mask, entry.metric));
 				}
+				responseUdp.setPayload(responseRip);
 				responseIp.setPayload(responseUdp);
 				responseEthernet.setPayload(responseIp);
 				responseEthernet.serialize();
@@ -197,25 +194,24 @@ public class Router extends Device {
 									.currentTimeMillis();
 							if (newMetric != ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric) {
 								ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric = newMetric;
-								this.routeTable.update(entry.getAddress() & entry.getSubnetMask(),
-										entry.getSubnetMask(), ipPacket.getSourceAddress(), inIface);
 							}
 						} else {
 							if (newMetric < ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric) {
 								ripMap.get(entry.getAddress() & entry.getSubnetMask()).metric = newMetric;
-								ripMap.get(entry.getAddress() & entry.getSubnetMask()).nextHop = ipPacket.getSourceAddress();
-								ripMap.get(entry.getAddress() & entry.getSubnetMask()).lastUpdated = System.currentTimeMillis();
-								this.routeTable.update(entry.getAddress() & entry.getSubnetMask(), entry.getSubnetMask(), ipPacket.getSourceAddress(), inIface);
+								ripMap.get(entry.getAddress() & entry.getSubnetMask()).nextHop = ipPacket
+										.getSourceAddress();
+								ripMap.get(entry.getAddress() & entry.getSubnetMask()).lastUpdated = System
+										.currentTimeMillis();
+								this.routeTable.update(entry.getAddress() & entry.getSubnetMask(),
+										entry.getSubnetMask(), ipPacket.getSourceAddress(), inIface);
 							}
 						}
 					} else {
-						if (newMetric < 16) {
-							ripMap.put(entry.getAddress() & entry.getSubnetMask(),
-									new RipEntry(entry.getAddress(), entry.getSubnetMask(), newMetric,
-											ipPacket.getSourceAddress(), System.currentTimeMillis()));
-							this.routeTable.insert(entry.getAddress() & entry.getSubnetMask(),
-									ipPacket.getSourceAddress(), entry.getSubnetMask(), inIface);
-						}
+						ripMap.put(entry.getAddress() & entry.getSubnetMask(),
+								new RipEntry(entry.getAddress() & entry.getSubnetMask(), entry.getSubnetMask(), newMetric,
+										ipPacket.getSourceAddress(), System.currentTimeMillis()));
+						this.routeTable.insert(entry.getAddress() & entry.getSubnetMask(),
+								ipPacket.getSourceAddress(), entry.getSubnetMask(), inIface);
 					}
 				}
 			}
@@ -361,33 +357,7 @@ public class Router extends Device {
 			}
 		};
 
-		// Periodic debug dump of RIP entries (every 30 seconds)
-		Runnable debugDump = () -> {
-			try {
-				long now = System.currentTimeMillis();
-				System.out.println("[RIP][debug] total entries=" + ripMap.size());
-				// Snapshot to avoid concurrent modification while iterating
-				java.util.List<RipEntry> snapshot = new java.util.ArrayList<>(ripMap.values());
-				for (RipEntry re : snapshot) {
-					String addrStr = IPv4.fromIPv4Address(re.addr);
-					String maskStr = IPv4.fromIPv4Address(re.mask);
-					String nhStr = IPv4.fromIPv4Address(re.nextHop);
-					long ageSec = (re.lastUpdated < 0) ? -1 : ((now - re.lastUpdated) / 1000L);
-					System.out.println(String.format(
-							"[RIP][entry] %s mask %s metric %d nextHop %s age=%ds",
-							addrStr, maskStr, re.metric, nhStr, ageSec));
-				}
-			} catch (Exception e) {
-				System.err.println("[RIP][debug] dump error: " + e.getMessage());
-			}
-
-			System.out.println("/////////////////////RouteTable///////////////////");
-			System.out.print(routeTable.toString());
-		};
-
 		scheduler.scheduleAtFixedRate(unsol, 0, 10, TimeUnit.SECONDS);
 		scheduler.scheduleAtFixedRate(timeOut, 0, 1, TimeUnit.SECONDS);
-		scheduler.scheduleAtFixedRate(debugDump, 0, 10, TimeUnit.SECONDS);
-
 	}
 }
