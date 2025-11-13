@@ -357,7 +357,7 @@ public class Router extends Device {
 			}
 		};
 
-		scheduler.scheduleAtFixedRate(unsol, 0, 10, TimeUnit.SECONDS);
+		scheduler.scheduleAtFixedRate(unsol, 10, 10, TimeUnit.SECONDS);
 		scheduler.scheduleAtFixedRate(timeOut, 0, 1, TimeUnit.SECONDS);
 	}
 }
